@@ -8,7 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	authztypes "github.com/cosmos/cosmos-sdk/x/authz"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
@@ -28,6 +27,7 @@ import (
 	ibctypes "github.com/cosmos/ibc-go/modules/core/types"
 	nfttypes "github.com/crypto-org-chain/chain-main/v3/x/nft/types"
 	cronostypes "github.com/crypto-org-chain/cronos/x/cronos/types"
+	vestingtypes "github.com/evmos/evmos/v6/x/vesting/types"
 	liquiditytypes "github.com/gravity-devs/liquidity/x/liquidity/types"
 	jsoniter "github.com/json-iterator/go"
 	gravitytypes "github.com/peggyjv/gravity-bridge/module/x/gravity/types"
@@ -52,6 +52,7 @@ func RegisterDecoderInterfaces(interfaceRegistry types.InterfaceRegistry) {
 	std.RegisterInterfaces(interfaceRegistry)
 
 	authtypes.RegisterInterfaces(interfaceRegistry)
+	vestingtypes.RegisterInterfaces(interfaceRegistry)
 	banktypes.RegisterInterfaces(interfaceRegistry)
 	crisistypes.RegisterInterfaces(interfaceRegistry)
 	distributiontypes.RegisterInterfaces(interfaceRegistry)

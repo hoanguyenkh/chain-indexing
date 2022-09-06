@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/calvinlauyh/cosmosutils v0.1.0
 	github.com/cenkalti/backoff/v4 v4.1.1
-	github.com/cosmos/cosmos-sdk v0.45.5
+	github.com/cosmos/cosmos-sdk v0.45.7
 	github.com/cosmos/ibc-go v1.2.1
 	github.com/crypto-org-chain/chain-main/v3 v3.0.0-croeseid
 	github.com/crypto-org-chain/cronos v0.6.0-testnet
@@ -35,7 +35,7 @@ require (
 	github.com/rs/zerolog v1.26.1
 	github.com/stretchr/testify v1.7.5
 	github.com/tendermint/tendermint v0.34.20-0.20220517115723-e6f071164839
-	github.com/tharsis/ethermint v0.7.1
+	github.com/evmos/ethermint v0.19.2
 	github.com/valyala/fasthttp v1.17.0
 	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
 	gopkg.in/yaml.v2 v2.4.0
@@ -52,7 +52,6 @@ require (
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
-	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/confio/ics23/go v0.7.0 // indirect
@@ -173,5 +172,3 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alp
 replace github.com/rs/zerolog => github.com/rs/zerolog v1.23.0
 
 replace github.com/evmos/evmos/v6 => github.com/AstraProtocol/evmos/v6 v6.0.3-astra
-
-replace github.com/enigmampc/btcutil => github.com/scrtlabs/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25

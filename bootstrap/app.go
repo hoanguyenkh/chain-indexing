@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
-
 	"github.com/crypto-com/chain-indexing/appinterface/rdb"
 	config "github.com/crypto-com/chain-indexing/bootstrap/config"
 	projection_entity "github.com/crypto-com/chain-indexing/entity/projection"
@@ -32,18 +31,18 @@ func NewApp(logger applogger.Logger, config *config.Config) *app {
 		ref := ""
 		if config.IndexService.GithubAPI.MigrationRepoRef != "" {
 			ref = "#" + config.IndexService.GithubAPI.MigrationRepoRef
-		}
 
-		m, err := migrate.New(
-			fmt.Sprintf(MIGRATION_GITHUB_TARGET, config.IndexService.GithubAPI.Username, config.IndexService.GithubAPI.Token, ref),
-			migrationDBConnString(rdbConn),
-		)
-		if err != nil {
-			logger.Panicf("failed to init migration: %v", err)
-		}
+			m, err := migrate.New(
+				fmt.Sprintf(MIGRATION_GITHUB_TARGET, config.IndexService.GithubAPI.Username, config.IndexService.GithubAPI.Token, ref),
+				migrationDBConnString(rdbConn),
+			)
+			if err != nil {
+				logger.Panicf("failed to init migration: %v", err)
+			}
 
-		if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-			logger.Panicf("failed to run migration: %v", err)
+			if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+				logger.Panicf("failed to run migration: %v", err)
+			}
 		}
 	}
 

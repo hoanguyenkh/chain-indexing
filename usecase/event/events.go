@@ -163,4 +163,7 @@ func RegisterEvents(registry *event.Registry) {
 	// Ethermint tx
 	registry.Register(MSG_ETHEREUM_TX_CREATED, 1, DecodeMsgEthereumTx)
 	registry.Register(MSG_ETHEREUM_TX_FAILED, 1, DecodeMsgEthereumTx)
+
+	registry.Register(MSG_CREATE_CRAW_BACK_VESTING_ACCOUNT_CREATED, 1, DecodeMsgCreateClawbackVestingAccount)
+	registry.Register(MSG_CREATE_CRAW_BACK_VESTING_ACCOUNT_FAILED, 1, DecodeMsgCreateClawbackVestingAccount)
 }

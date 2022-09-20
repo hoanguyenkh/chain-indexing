@@ -2167,3 +2167,60 @@ func ParseMsgEthereumTx(
 		msgEthereumTxParams,
 	)}, possibleSignerAddresses
 }
+
+func ParseMsgClawbackVestingAccount(
+	parserParams utils.CosmosParserParams,
+) ([]command.Command, []string) {
+	var rawMsg model.RawMsgCreateClawbackVestingAccount
+	decoderConfig := &mapstructure.DecoderConfig{
+		WeaklyTypedInput: true,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
+			mapstructure_utils.StringToDurationHookFunc(),
+			mapstructure_utils.StringToByteSliceHookFunc(),
+		),
+		Result: &rawMsg,
+	}
+	decoder, decoderErr := mapstructure.NewDecoder(decoderConfig)
+	if decoderErr != nil {
+		panic(fmt.Errorf("error creating RawMsgCreateClawbackVestingAccount decoder: %v", decoderErr))
+	}
+	if err := decoder.Decode(parserParams.Msg); err != nil {
+		panic(fmt.Errorf("error decoding RawMsgCreateClawbackVestingAccount: %v", err))
+	}
+
+	if !parserParams.MsgCommonParams.TxSuccess {
+		msgCreateClawbackVestingAccountParams := model.MsgCreateClawbackVestingAccountParams{
+			RawMsgCreateClawbackVestingAccount: rawMsg,
+		}
+
+		// Getting possible signer address from Msg
+		var possibleSignerAddresses []string
+		if msgCreateClawbackVestingAccountParams.RawMsgCreateClawbackVestingAccount.FromAddress != "" {
+			possibleSignerAddresses = append(possibleSignerAddresses, msgCreateClawbackVestingAccountParams.RawMsgCreateClawbackVestingAccount.FromAddress)
+		}
+
+		return []command.Command{command_usecase.NewCreateClawbackVestingAccount(
+			parserParams.MsgCommonParams,
+
+			msgCreateClawbackVestingAccountParams,
+		)}, possibleSignerAddresses
+	}
+
+	msgCreateVestingAccountParams := model.MsgCreateClawbackVestingAccountParams{
+		RawMsgCreateClawbackVestingAccount: rawMsg,
+	}
+
+	// Getting possible signer address from Msg
+	var possibleSignerAddresses []string
+	if msgCreateVestingAccountParams.RawMsgCreateClawbackVestingAccount.FromAddress != "" {
+		possibleSignerAddresses = append(possibleSignerAddresses, msgCreateVestingAccountParams.RawMsgCreateClawbackVestingAccount.FromAddress)
+	}
+
+	return []command.Command{command_usecase.NewCreateClawbackVestingAccount(
+		parserParams.MsgCommonParams,
+
+		msgCreateVestingAccountParams,
+	)}, possibleSignerAddresses
+}

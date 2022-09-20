@@ -3,6 +3,7 @@ package transaction_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/crypto-com/chain-indexing/external/primptr"
@@ -137,10 +138,29 @@ func TestTransaction_HandleEvents(t *testing.T) {
 						},
 					},
 				},
+				&event_usecase.MsgCreateClawbackVestingAccount{
+					MsgBase: event_usecase.NewMsgBase(event_usecase.MsgBaseParams{
+						MsgName: event_usecase.MSG_CREATE_CRAW_BACK_VESTING_ACCOUNT,
+						Version: 1,
+						MsgCommonParams: event_usecase.MsgCommonParams{
+							BlockHeight: 1,
+							TxHash:      "TxHash",
+							TxSuccess:   true,
+							MsgIndex:    0,
+						},
+					}),
+					FromAddress:    "FromAddress",
+					ToAddress:      "To",
+					StartTime:      time.Time{},
+					LockupPeriods:  nil,
+					VestingPeriods: nil,
+					Merge:          false,
+				},
 			},
 			MockFunc: func(events []event_entity.Event) (mocks []*testify_mock.Mock) {
 
 				msgEvent, _ := events[2].(event_usecase.MsgEvent)
+				msgVesting, _ := events[3].(event_usecase.MsgEvent)
 
 				mockTransactionsView := transaction_view.NewMockTransactionsView(nil).(*transaction_view.MockTransactionsView)
 				mocks = append(mocks, &mockTransactionsView.Mock)
@@ -186,6 +206,10 @@ func TestTransaction_HandleEvents(t *testing.T) {
 								{
 									Type:    "/cosmos.bank.v1beta1.MsgSend",
 									Content: msgEvent,
+								},
+								{
+									Type:    "/evmos.vesting.v1.MsgCreateClawbackVestingAccount",
+									Content: msgVesting,
 								},
 							},
 						},

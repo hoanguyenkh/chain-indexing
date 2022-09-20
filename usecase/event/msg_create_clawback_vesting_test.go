@@ -17,6 +17,13 @@ var _ = Describe("Create crawback vesting", func() {
 
 	Describe("En/DecodeNewMsgCreateClawbackVestingAccount", func() {
 		It("should able to encode and decode to the same event", func() {
+			rawMsg := model.RawMsgCreateClawbackVestingAccount{
+				FromAddress:    "astra1wxru954y35y88x2u8q2vsmmsazs7h3ld0yfnh6",
+				ToAddress:      "astra1wxru954y35y88x2u8q2vsmmsazs7h3ld0yfnh6",
+				StartTime:      time.UnixMicro(0),
+				VestingPeriods: vesting.Periods{},
+				LockupPeriods:  vesting.Periods{},
+				Merge:          true}
 			event := event_usecase.NewMsgCreateClawbackVestingAccount(
 				event.MsgCommonParams{
 					BlockHeight: int64(503978),
@@ -25,12 +32,7 @@ var _ = Describe("Create crawback vesting", func() {
 					MsgIndex:    0,
 				},
 				model.MsgCreateClawbackVestingAccountParams{
-					FromAddress:    "astra1wxru954y35y88x2u8q2vsmmsazs7h3ld0yfnh6",
-					ToAddress:      "astra1wxru954y35y88x2u8q2vsmmsazs7h3ld0yfnh6",
-					StartTime:      time.UnixMicro(0),
-					VestingPeriods: vesting.Periods{},
-					LockupPeriods:  vesting.Periods{},
-					Merge:          true,
+					RawMsgCreateClawbackVestingAccount: rawMsg,
 				},
 			)
 

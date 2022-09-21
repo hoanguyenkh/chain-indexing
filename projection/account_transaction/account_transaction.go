@@ -297,23 +297,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			)
 			transactionInfos[typedEvent.TxHash()].AddAccount(accountAddress)
 
-		} else if typedEvent, ok := event.(*event_usecase.MsgNFTIssueDenom); ok {
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Sender)
-
-		} else if typedEvent, ok := event.(*event_usecase.MsgNFTMintNFT); ok {
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Sender)
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Recipient)
-
-		} else if typedEvent, ok := event.(*event_usecase.MsgNFTTransferNFT); ok {
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Sender)
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Recipient)
-
-		} else if typedEvent, ok := event.(*event_usecase.MsgNFTEditNFT); ok {
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Sender)
-
-		} else if typedEvent, ok := event.(*event_usecase.MsgNFTBurnNFT); ok {
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Sender)
-
 		} else if typedEvent, ok := event.(*event_usecase.MsgIBCCreateClient); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.Signer)
 

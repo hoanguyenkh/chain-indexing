@@ -52,16 +52,6 @@ func (accountMessagesView *MockAccountMessagesView) Insert(messageRow *AccountMe
 		data.EventUUID = "TESTUUID"
 	} else if data, ok := messageRow.Data.(*event_usecase.MsgUnjail); ok {
 		data.EventUUID = "TESTUUID"
-	} else if data, ok := messageRow.Data.(*event_usecase.MsgNFTIssueDenom); ok {
-		data.EventUUID = "TESTUUID"
-	} else if data, ok := messageRow.Data.(*event_usecase.MsgNFTMintNFT); ok {
-		data.EventUUID = "TESTUUID"
-	} else if data, ok := messageRow.Data.(*event_usecase.MsgNFTTransferNFT); ok {
-		data.EventUUID = "TESTUUID"
-	} else if data, ok := messageRow.Data.(*event_usecase.MsgNFTEditNFT); ok {
-		data.EventUUID = "TESTUUID"
-	} else if data, ok := messageRow.Data.(*event_usecase.MsgNFTBurnNFT); ok {
-		data.EventUUID = "TESTUUID"
 	} else if data, ok := messageRow.Data.(*event_usecase.MsgIBCCreateClient); ok {
 		data.EventUUID = "TESTUUID"
 	} else if data, ok := messageRow.Data.(*event_usecase.MsgIBCUpdateClient); ok {

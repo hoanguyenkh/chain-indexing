@@ -21,7 +21,7 @@ var (
 )
 
 func RecordApiExecTime(apiName string, timeInMilliseconds int64) {
-	projectionExecTime.With(
+	apiExecTime.With(
 		prometheus.Labels{
 			apiExecTimeProjectionLabel: apiName,
 		},

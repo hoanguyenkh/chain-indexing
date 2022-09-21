@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"errors"
+	"github.com/crypto-com/chain-indexing/infrastructure/metric/prometheus"
 	"strconv"
+	"time"
 
 	applogger "github.com/crypto-com/chain-indexing/external/logger"
 	validator_view "github.com/crypto-com/chain-indexing/projection/validator/view"
@@ -66,8 +68,10 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 }
 
 func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
 	pagination, err := httpapi.ParsePagination(ctx)
 	if err != nil {
+		prometheus.RecordApiExecTime(ctx.URI().String(), time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -85,10 +89,11 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	}, pagination)
 	if err != nil {
 		handler.logger.Errorf("error listing blocks: %v", err)
+		prometheus.RecordApiExecTime(ctx.URI().String(), time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
-
+	prometheus.RecordApiExecTime(ctx.URI().String(), time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 

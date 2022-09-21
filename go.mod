@@ -37,6 +37,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/tendermint/tendermint v0.34.21
 	github.com/valyala/fasthttp v1.30.0
+	github.com/zephinzer/ezpromhttp v0.0.0-20181107155944-35db4d206cee
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	gopkg.in/yaml.v2 v2.4.0
 )

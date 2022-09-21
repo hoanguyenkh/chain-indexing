@@ -29,4 +29,5 @@ func Run(path, port string) error {
 func register() {
 	Registerer.MustRegister(projectionExecTime)
 	Registerer.MustRegister(projectionLatestHeight)
+	Registerer.MustRegister(apiExecTime)
 }

@@ -127,7 +127,8 @@ func ParseBlockTxsMsgToCommands(
 				"/cosmos.vesting.v1beta1.MsgCreateVestingAccount",
 
 				// ethermint evm
-				"/ethermint.evm.v1.MsgEthereumTx":
+				"/ethermint.evm.v1.MsgEthereumTx",
+				"/evmos.vesting.v1.MsgCreateClawbackVestingAccount":
 				parser := parserManager.GetParser(utils.CosmosParserKey(msgType.(string)), utils.ParserBlockHeight(blockHeight))
 
 				msgCommands, possibleSignerAddresses = parser(utils.CosmosParserParams{
@@ -2172,22 +2173,20 @@ func ParseMsgClawbackVestingAccount(
 	parserParams utils.CosmosParserParams,
 ) ([]command.Command, []string) {
 	var rawMsg model.RawMsgCreateClawbackVestingAccount
-	decoderConfig := &mapstructure.DecoderConfig{
-		WeaklyTypedInput: true,
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			mapstructure.StringToTimeDurationHookFunc(),
-			mapstructure.StringToTimeHookFunc(time.RFC3339),
-			mapstructure_utils.StringToDurationHookFunc(),
-			mapstructure_utils.StringToByteSliceHookFunc(),
-		),
-		Result: &rawMsg,
+	if fromAddress, ok := parserParams.Msg["from_address"]; ok {
+		rawMsg.FromAddress = fromAddress.(string)
 	}
-	decoder, decoderErr := mapstructure.NewDecoder(decoderConfig)
-	if decoderErr != nil {
-		panic(fmt.Errorf("error creating RawMsgCreateClawbackVestingAccount decoder: %v", decoderErr))
+	if toAddress, ok := parserParams.Msg["to_address"]; ok {
+		rawMsg.ToAddress = toAddress.(string)
 	}
-	if err := decoder.Decode(parserParams.Msg); err != nil {
-		panic(fmt.Errorf("error decoding RawMsgCreateClawbackVestingAccount: %v", err))
+	if startTime, ok := parserParams.Msg["start_time"]; ok {
+		rawMsg.StartTime, _ = time.Parse(time.RFC3339, startTime.(string))
+	}
+	if merge, ok := parserParams.Msg["merge"]; ok {
+		rawMsg.Merge = merge.(bool)
+	}
+	if typeStr, ok := parserParams.Msg["@type"]; ok {
+		rawMsg.Type = typeStr.(string)
 	}
 
 	if !parserParams.MsgCommonParams.TxSuccess {

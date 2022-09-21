@@ -81,13 +81,6 @@ func ParseBlockTxsMsgToCommands(
 				// cosmos slashing
 				"/cosmos.slashing.v1beta1.MsgUnjail",
 
-				// chainmain nft
-				"/chainmain.nft.v1.MsgIssueDenom",
-				"/chainmain.nft.v1.MsgMintNFT",
-				"/chainmain.nft.v1.MsgTransferNFT",
-				"/chainmain.nft.v1.MsgEditNFT",
-				"/chainmain.nft.v1.MsgBurnNFT",
-
 				// ibc core client
 				"/ibc.core.client.v1.MsgCreateClient",
 				"/ibc.core.client.v1.MsgUpdateClient",
@@ -1309,125 +1302,6 @@ func ParseMsgEditValidator(
 			ValidatorAddress:       parserParams.Msg["validator_address"].(string),
 			MaybeCommissionRate:    maybeCommissionRate,
 			MaybeMinSelfDelegation: maybeMinSelfDelegation,
-		},
-	)}, possibleSignerAddresses
-}
-
-func ParseMsgNFTIssueDenom(
-	parserParams utils.CosmosParserParams,
-) ([]command.Command, []string) {
-	// Getting possible signer address from Msg
-	var possibleSignerAddresses []string
-	if parserParams.Msg != nil {
-		if sender, ok := parserParams.Msg["sender"]; ok {
-			possibleSignerAddresses = append(possibleSignerAddresses, sender.(string))
-		}
-	}
-
-	return []command.Command{command_usecase.NewCreateMsgNFTIssueDenom(
-		parserParams.MsgCommonParams,
-
-		model.MsgNFTIssueDenomParams{
-			DenomId:   parserParams.Msg["id"].(string),
-			DenomName: parserParams.Msg["name"].(string),
-			Schema:    parserParams.Msg["schema"].(string),
-			Sender:    parserParams.Msg["sender"].(string),
-		},
-	)}, possibleSignerAddresses
-}
-
-func ParseMsgNFTMintNFT(
-	parserParams utils.CosmosParserParams,
-) ([]command.Command, []string) {
-	// Getting possible signer address from Msg
-	var possibleSignerAddresses []string
-	if parserParams.Msg != nil {
-		if sender, ok := parserParams.Msg["sender"]; ok {
-			possibleSignerAddresses = append(possibleSignerAddresses, sender.(string))
-		}
-	}
-
-	return []command.Command{command_usecase.NewCreateMsgNFTMintNFT(
-		parserParams.MsgCommonParams,
-
-		model.MsgNFTMintNFTParams{
-			DenomId:   parserParams.Msg["denom_id"].(string),
-			TokenId:   parserParams.Msg["id"].(string),
-			TokenName: parserParams.Msg["name"].(string),
-			URI:       parserParams.Msg["uri"].(string),
-			Data:      parserParams.Msg["data"].(string),
-			Sender:    parserParams.Msg["sender"].(string),
-			Recipient: parserParams.Msg["recipient"].(string),
-		},
-	)}, possibleSignerAddresses
-}
-
-func ParseMsgNFTTransferNFT(
-	parserParams utils.CosmosParserParams,
-) ([]command.Command, []string) {
-	// Getting possible signer address from Msg
-	var possibleSignerAddresses []string
-	if parserParams.Msg != nil {
-		if sender, ok := parserParams.Msg["sender"]; ok {
-			possibleSignerAddresses = append(possibleSignerAddresses, sender.(string))
-		}
-	}
-
-	return []command.Command{command_usecase.NewCreateMsgNFTTransferNFT(
-		parserParams.MsgCommonParams,
-
-		model.MsgNFTTransferNFTParams{
-			TokenId:   parserParams.Msg["id"].(string),
-			DenomId:   parserParams.Msg["denom_id"].(string),
-			Sender:    parserParams.Msg["sender"].(string),
-			Recipient: parserParams.Msg["recipient"].(string),
-		},
-	)}, possibleSignerAddresses
-}
-
-func ParseMsgNFTEditNFT(
-	parserParams utils.CosmosParserParams,
-) ([]command.Command, []string) {
-	// Getting possible signer address from Msg
-	var possibleSignerAddresses []string
-	if parserParams.Msg != nil {
-		if sender, ok := parserParams.Msg["sender"]; ok {
-			possibleSignerAddresses = append(possibleSignerAddresses, sender.(string))
-		}
-	}
-
-	return []command.Command{command_usecase.NewCreateMsgNFTEditNFT(
-		parserParams.MsgCommonParams,
-
-		model.MsgNFTEditNFTParams{
-			DenomId:   parserParams.Msg["denom_id"].(string),
-			TokenId:   parserParams.Msg["id"].(string),
-			TokenName: parserParams.Msg["name"].(string),
-			URI:       parserParams.Msg["uri"].(string),
-			Data:      parserParams.Msg["data"].(string),
-			Sender:    parserParams.Msg["sender"].(string),
-		},
-	)}, possibleSignerAddresses
-}
-
-func ParseMsgNFTBurnNFT(
-	parserParams utils.CosmosParserParams,
-) ([]command.Command, []string) {
-	// Getting possible signer address from Msg
-	var possibleSignerAddresses []string
-	if parserParams.Msg != nil {
-		if sender, ok := parserParams.Msg["sender"]; ok {
-			possibleSignerAddresses = append(possibleSignerAddresses, sender.(string))
-		}
-	}
-
-	return []command.Command{command_usecase.NewCreateMsgNFTBurnNFT(
-		parserParams.MsgCommonParams,
-
-		model.MsgNFTBurnNFTParams{
-			DenomId: parserParams.Msg["denom_id"].(string),
-			TokenId: parserParams.Msg["id"].(string),
-			Sender:  parserParams.Msg["sender"].(string),
 		},
 	)}, possibleSignerAddresses
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/calvinlauyh/cosmosutils"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/std"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authztypes "github.com/cosmos/cosmos-sdk/x/authz"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -19,24 +18,19 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
-	ibcclienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	ibcconnectiontypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
-	ibcchanneltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
-	ibccommitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
-	ibctypes "github.com/cosmos/ibc-go/modules/core/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	ibcclienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+	ibcconnectiontypes "github.com/cosmos/ibc-go/v3/modules/core/03-connection/types"
+	ibcchanneltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+	ibccommitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
+	ibctypes "github.com/cosmos/ibc-go/v3/modules/core/types"
+	"github.com/crypto-com/chain-indexing/usecase/coin"
 	"github.com/crypto-com/chain-indexing/usecase/model"
-	nfttypes "github.com/crypto-org-chain/chain-main/v3/x/nft/types"
-	cronostypes "github.com/crypto-org-chain/cronos/x/cronos/types"
 	ethermintcryptotypes "github.com/evmos/ethermint/crypto/codec"
 	ethereminttypes "github.com/evmos/ethermint/types"
 	evmtypes "github.com/evmos/ethermint/x/evm/types"
 	vestingtypes "github.com/evmos/evmos/v6/x/vesting/types"
-	liquiditytypes "github.com/gravity-devs/liquidity/x/liquidity/types"
 	jsoniter "github.com/json-iterator/go"
-	gravitytypes "github.com/peggyjv/gravity-bridge/module/x/gravity/types"
-
-	"github.com/crypto-com/chain-indexing/usecase/coin"
 )
 
 type TxDecoder struct {
@@ -51,9 +45,7 @@ func NewTxDecoder() *TxDecoder {
 
 func RegisterDecoderInterfaces(interfaceRegistry types.InterfaceRegistry) {
 	std.RegisterInterfaces(interfaceRegistry)
-
 	authtypes.RegisterInterfaces(interfaceRegistry)
-	vestingtypes.RegisterInterfaces(interfaceRegistry)
 	banktypes.RegisterInterfaces(interfaceRegistry)
 	crisistypes.RegisterInterfaces(interfaceRegistry)
 	distributiontypes.RegisterInterfaces(interfaceRegistry)
@@ -70,21 +62,11 @@ func RegisterDecoderInterfaces(interfaceRegistry types.InterfaceRegistry) {
 	ibcconnectiontypes.RegisterInterfaces(interfaceRegistry)
 	ibcchanneltypes.RegisterInterfaces(interfaceRegistry)
 	ibccommitmenttypes.RegisterInterfaces(interfaceRegistry)
-	nfttypes.RegisterInterfaces(interfaceRegistry)
 	authztypes.RegisterInterfaces(interfaceRegistry)
 	feegranttypes.RegisterInterfaces(interfaceRegistry)
 	ethereminttypes.RegisterInterfaces(interfaceRegistry)
 	ethermintcryptotypes.RegisterInterfaces(interfaceRegistry)
 	evmtypes.RegisterInterfaces(interfaceRegistry)
-	gravitytypes.RegisterInterfaces(interfaceRegistry)
-	cronostypes.RegisterInterfaces(interfaceRegistry)
-	liquiditytypes.RegisterInterfaces(interfaceRegistry)
-
-	// FIXME
-	interfaceRegistry.RegisterImplementations((*sdk.Msg)(nil),
-		&cronostypes.MsgConvertVouchers{},
-		&cronostypes.MsgTransferTokens{},
-	)
 }
 
 func (decoder *TxDecoder) Decode(base64Tx string) (*CosmosTx, error) {

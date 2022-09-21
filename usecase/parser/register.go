@@ -34,13 +34,6 @@ func InitParsers(manager *utils.CosmosParserManager) {
 	// cosmos slashing
 	manager.RegisterParser("/cosmos.slashing.v1beta1.MsgUnjail", BEGIN_BLOCK_HEIGHT, ParseMsgUnjail)
 
-	// chainmain nft
-	manager.RegisterParser("/chainmain.nft.v1.MsgIssueDenom", BEGIN_BLOCK_HEIGHT, ParseMsgNFTIssueDenom)
-	manager.RegisterParser("/chainmain.nft.v1.MsgMintNFT", BEGIN_BLOCK_HEIGHT, ParseMsgNFTMintNFT)
-	manager.RegisterParser("/chainmain.nft.v1.MsgTransferNFT", BEGIN_BLOCK_HEIGHT, ParseMsgNFTTransferNFT)
-	manager.RegisterParser("/chainmain.nft.v1.MsgEditNFT", BEGIN_BLOCK_HEIGHT, ParseMsgNFTEditNFT)
-	manager.RegisterParser("/chainmain.nft.v1.MsgBurnNFT", BEGIN_BLOCK_HEIGHT, ParseMsgNFTBurnNFT)
-
 	// ibc core client
 	manager.RegisterParser("/ibc.core.client.v1.MsgCreateClient", BEGIN_BLOCK_HEIGHT, ibcmsg.ParseMsgCreateClient)
 	manager.RegisterParser("/ibc.core.client.v1.MsgUpdateClient", BEGIN_BLOCK_HEIGHT, ibcmsg.ParseMsgUpdateClient)

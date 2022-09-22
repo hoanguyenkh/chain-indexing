@@ -83,6 +83,7 @@ func (server *HTTPAPIServer) Run() error {
 	}
 
 	server.logger.Infof("server start listening on: %s", server.listeningAddress)
+	server.httpServer.UpdateIsAddMetrics()
 	if err := server.httpServer.ListenAndServe(); err != nil {
 		return fmt.Errorf("error listening and serving HTTP API server: %v", err)
 	}

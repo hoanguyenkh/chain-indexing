@@ -2,6 +2,9 @@ package httpapi
 
 import (
 	"fmt"
+	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
+	"github.com/slok/go-http-metrics/middleware"
+	fasthttpmiddleware "github.com/slok/go-http-metrics/middleware/fasthttp"
 	"strings"
 
 	applogger "github.com/crypto-com/chain-indexing/external/logger"
@@ -18,6 +21,7 @@ type Server struct {
 	middlewares      []Middleware
 	corsMiddleware   Middleware
 	loggerMiddleware Middleware
+	isAddMetric      bool
 }
 
 func NewServer(listeningAddress string) *Server {
@@ -30,6 +34,7 @@ func NewServer(listeningAddress string) *Server {
 		middlewares,
 		nil,
 		nil,
+		false,
 	}
 }
 
@@ -97,6 +102,11 @@ func (server *Server) WithPprof(path string) *Server {
 	return server
 }
 
+func (server *Server) UpdateIsAddMetrics() *Server {
+	server.isAddMetric = true
+	return server
+}
+
 func (server *Server) ListenAndServe() error {
 	handler := server.router.Handler
 	if server.corsMiddleware != nil {
@@ -105,8 +115,15 @@ func (server *Server) ListenAndServe() error {
 	if server.loggerMiddleware != nil {
 		handler = server.loggerMiddleware(handler)
 	}
-	for _, middleware := range server.middlewares {
-		handler = middleware(handler)
+	for _, middw := range server.middlewares {
+		handler = middw(handler)
+	}
+	if server.isAddMetric {
+		mdlw := middleware.New(middleware.Config{
+			Recorder: metrics.NewRecorder(metrics.Config{}),
+		})
+
+		handler = fasthttpmiddleware.Handler("", mdlw, handler)
 	}
 	return fasthttp.ListenAndServe(server.listeningAddress, handler)
 }

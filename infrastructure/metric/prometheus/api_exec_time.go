@@ -5,8 +5,10 @@ import (
 )
 
 const (
-	apiExecTimeName            = "api_execution_time_per_block"
+	apiExecTimeName            = "api_execution_time"
 	apiExecTimeProjectionLabel = "api"
+	httpCode                   = "code"
+	httpMethod                 = "method"
 )
 
 var (
@@ -16,14 +18,18 @@ var (
 		},
 		[]string{
 			apiExecTimeProjectionLabel,
+			httpCode,
+			httpMethod,
 		},
 	)
 )
 
-func RecordApiExecTime(apiName string, timeInMilliseconds int64) {
+func RecordApiExecTime(apiName, code, method string, timeInMilliseconds int64) {
 	apiExecTime.With(
 		prometheus.Labels{
 			apiExecTimeProjectionLabel: apiName,
+			httpCode:                   code,
+			httpMethod:                 method,
 		},
 	).Observe(float64(timeInMilliseconds))
 }

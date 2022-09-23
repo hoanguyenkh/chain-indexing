@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/crypto-com/chain-indexing/infrastructure/metric/prometheus"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -40,7 +41,7 @@ func NewHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClie
 	}
 }
 
-// NewHTTPClient returns a new HTTPClient for tendermint request
+// NewInsecureHTTPClient returns a new HTTPClient for tendermint request
 func NewInsecureHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClient {
 	// nolint:gosec
 	transport := &http.Transport{
@@ -61,18 +62,18 @@ func NewInsecureHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *
 func (client *HTTPClient) Genesis() (*genesis.Genesis, error) {
 	var err error
 
-	rawRespBody, err := client.request("genesis")
+	rawRespBody, err := client.request("genesisResp")
 	if err != nil {
 		return nil, err
 	}
 	defer rawRespBody.Close()
 
-	genesis, err := ParseGenesisResp(rawRespBody, client.strictGenesisParsing)
+	genesisResp, err := ParseGenesisResp(rawRespBody, client.strictGenesisParsing)
 	if err != nil {
 		return nil, err
 	}
 
-	return genesis, nil
+	return genesisResp, nil
 }
 
 // Block gets the block response with target height
@@ -80,6 +81,7 @@ func (client *HTTPClient) Block(height int64) (*usecase_model.Block, *usecase_mo
 	var err error
 
 	rawRespBody, err := client.request("block", "height="+strconv.FormatInt(height, 10))
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -131,7 +133,7 @@ func (client *HTTPClient) LatestBlockHeight() (int64, error) {
 // returns the success http Body
 func (client *HTTPClient) request(method string, queryString ...string) (io.ReadCloser, error) {
 	var err error
-
+	startTime := time.Now()
 	url := client.tendermintRPCUrl + "/" + method
 	if len(queryString) > 0 {
 		url += "?" + queryString[0]
@@ -139,13 +141,15 @@ func (client *HTTPClient) request(method string, queryString ...string) (io.Read
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
+		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "rpc", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
 	}
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
+		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "rpc", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error requesting Tendermint %s endpoint: %v", url, err)
 	}
-
+	prometheus.RecordApiExecTime(method, strconv.Itoa(rawResp.StatusCode), "rpc", time.Since(startTime).Milliseconds())
 	if rawResp.StatusCode != 200 {
 		rawResp.Body.Close()
 		return nil, fmt.Errorf("error requesting Tendermint %s endpoint: %s", method, rawResp.Status)

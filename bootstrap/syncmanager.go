@@ -23,7 +23,7 @@ import (
 )
 
 const MAX_RETRY_TIME_ALWAYS_RETRY = 0
-const DEFAULT_POLLING_INTERVAL = 5 * time.Second
+const DEFAULT_POLLING_INTERVAL = 3 * time.Second
 const DEFAULT_MAX_RETRY_INTERVAL = 15 * time.Minute
 const DEFAULT_MAX_RETRY_TIME = MAX_RETRY_TIME_ALWAYS_RETRY
 
@@ -230,6 +230,7 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 	}
 
 	// Request tendermint RPC
+
 	block, rawBlock, err := manager.tendermintClient.Block(blockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error requesting chain block at height %d: %v", blockHeight, err)

@@ -292,24 +292,28 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 
 		}(txHex)
 	}
-	txs := make([]model.Tx, 0)
+	txResults := make([]TxResult, 0)
 	// start listening for any results over the resultsChan
 	// once we get a result append it to the result slice
 	if len(block.Txs) > 0 {
 		for {
 			result := <-resultsChan
-			txs = append(txs, result.tx)
-			if result.err != nil {
-				return nil, fmt.Errorf("error requesting chain txs (%s) at height %d: %v", result.txHex, blockHeight, result.err)
-			}
+			txResults = append(txResults, *result)
 			// if we've reached the expected amount of urls then stop
-			if len(txs) == len(block.Txs) {
+			if len(txResults) == len(block.Txs) {
 				break
 			}
 		}
 		seconds := time.Since(startTime).Seconds()
-
 		logger.Infof("total time process txs {}, time {}", len(block.Txs), seconds)
+	}
+	txs := make([]model.Tx, 0)
+
+	for i := range txResults {
+		if txResults[i].err != nil {
+			return nil, fmt.Errorf("error requesting chain txs (%s) at height %d: %v", txResults[i].txHex, blockHeight, txResults[i].err)
+		}
+		txs = append(txs, txResults[i].tx)
 	}
 
 	parseBlockToCommandsLogger := manager.logger.WithFields(applogger.LogFields{

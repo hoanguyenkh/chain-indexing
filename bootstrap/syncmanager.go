@@ -274,8 +274,14 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 			// any error that might have occoured
 			var tx *model.Tx
 			tx, err = manager.cosmosClient.Tx(parser.TxHash(txHex))
-			txResult := &TxResult{txHex, *tx, err}
+			txResult := &TxResult{txHex, model.Tx{
+				Tx:         model.CosmosTx{},
+				TxResponse: model.TxResponse{},
+			}, err}
 
+			if tx != nil {
+				txResult = &TxResult{txHex, *tx, err}
+			}
 			// now we can send the result struct through the resultsChan
 			resultsChan <- txResult
 

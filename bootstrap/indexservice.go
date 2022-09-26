@@ -32,6 +32,7 @@ type IndexService struct {
 	insecureCosmosAppClient  bool
 	strictGenesisParsing     bool
 	startingBlockHeight      int64
+	concurrency              int
 
 	cosmosVersionBlockHeight utils.CosmosVersionBlockHeight
 
@@ -58,6 +59,7 @@ func NewIndexService(
 		accountAddressPrefix:     config.Blockchain.AccountAddressPrefix,
 		bondingDenom:             config.Blockchain.BondingDenom,
 		windowSize:               config.IndexService.WindowSize,
+		concurrency:              config.IndexService.Concurrency,
 		tendermintHTTPRPCURL:     config.TendermintApp.HTTPRPCUrl,
 		cosmosAppHTTPRPCURL:      config.CosmosApp.HTTPRPCUrl,
 		insecureTendermintClient: config.TendermintApp.Insecure,
@@ -147,6 +149,7 @@ func (service *IndexService) RunEventStoreMode() error {
 				AccountAddressPrefix:     service.accountAddressPrefix,
 				StakingDenom:             service.bondingDenom,
 				StartingBlockHeight:      service.startingBlockHeight,
+				Concurrency:              service.concurrency,
 			},
 		},
 		utils.NewCosmosParserManager(
@@ -185,6 +188,7 @@ func (service *IndexService) RunTendermintDirectMode() error {
 						AccountAddressPrefix:     service.accountAddressPrefix,
 						StakingDenom:             service.bondingDenom,
 						StartingBlockHeight:      service.startingBlockHeight,
+						Concurrency:              service.concurrency,
 					},
 				},
 				utils.NewCosmosParserManager(

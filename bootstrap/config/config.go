@@ -20,6 +20,7 @@ type IndexService struct {
 	StartingBlockHeight        int64                      `yaml:"starting_block_height" toml:"starting_block_height" xml:"starting_block_height" json:"starting_block_height,omitempty"`
 	Mode                       string                     `yaml:"mode" toml:"mode" xml:"mode" json:"mode,omitempty"`
 	WindowSize                 int                        `yaml:"window_size" toml:"window_size" xml:"window_size" json:"window_size,omitempty"`
+	Concurrency                int                        `yaml:"concurrency" toml:"concurrency" xml:"concurrency" json:"concurrency,omitempty"`
 	Projection                 Projection                 `yaml:"projection" toml:"projection" xml:"projection" json:"projection"`
 	CronJob                    CronJob                    `yaml:"cron_job" toml:"cron_job" xml:"cron_job" json:"cron_job"`
 	CosmosVersionEnabledHeight CosmosVersionEnabledHeight `yaml:"cosmos_version_enabled_height" toml:"cosmos_version_enabled_height" xml:"cosmos_version_enabled_height" json:"cosmos_version_enabled_height"`

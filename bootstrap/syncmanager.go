@@ -51,6 +51,7 @@ type SyncManager struct {
 	parserManager *utils.CosmosParserManager
 
 	startingBlockHeight int64
+	concurrency         int
 }
 
 type SyncManagerParams struct {
@@ -71,6 +72,13 @@ type SyncManagerConfig struct {
 	AccountAddressPrefix     string
 	StakingDenom             string
 	StartingBlockHeight      int64
+	Concurrency              int
+}
+
+type TxResult struct {
+	txHex string
+	tx    model.Tx
+	err   error
 }
 
 // NewSyncManager creates a new feed with polling for latest block starts at a specific height
@@ -127,6 +135,7 @@ func NewSyncManager(
 		parserManager: pm,
 
 		startingBlockHeight: params.Config.StartingBlockHeight,
+		concurrency:         params.Config.Concurrency,
 	}
 }
 
@@ -218,7 +227,7 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 		"blockHeight": blockHeight,
 	})
 
-	logger.Info("synchronizing block")
+	logger.Infof("synchronizing block {}", blockHeight)
 
 	if blockHeight == int64(0) {
 		genesis, err := manager.tendermintClient.Genesis()
@@ -240,15 +249,61 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 	if err != nil {
 		return nil, fmt.Errorf("error requesting chain block_results at height %d: %v", blockHeight, err)
 	}
+	// this buffered channel will block at the concurrency limit
+	semaphoreChan := make(chan struct{}, manager.concurrency)
 
-	txs := make([]model.Tx, 0)
+	// this channel will not block and collect the http request results
+	resultsChan := make(chan *TxResult)
+
+	// make sure we close these channels when we're done with them
+	defer func() {
+		close(semaphoreChan)
+		close(resultsChan)
+	}()
+	startTime := time.Now()
 	for _, txHex := range block.Txs {
-		var tx *model.Tx
-		tx, err = manager.cosmosClient.Tx(parser.TxHash(txHex))
-		if err != nil {
-			return nil, fmt.Errorf("error requesting chain txs (%s) at height %d: %v", txHex, blockHeight, err)
+		// start a go routine with the index and url in a closure
+		go func(txHex string) {
+			// this sends an empty struct into the semaphoreChan which
+			// is basically saying add one to the limit, but when the
+			// limit has been reached block until there is room
+			semaphoreChan <- struct{}{}
+
+			// send the request and put the response in a result struct
+			// along with the index so we can sort them later along with
+			// any error that might have occoured
+			var tx *model.Tx
+			tx, err = manager.cosmosClient.Tx(parser.TxHash(txHex))
+			txResult := &TxResult{txHex, *tx, err}
+
+			// now we can send the result struct through the resultsChan
+			resultsChan <- txResult
+
+			// once we're done it's we read from the semaphoreChan which
+			// has the effect of removing one from the limit and allowing
+			// another goroutine to start
+			<-semaphoreChan
+
+		}(txHex)
+	}
+	txs := make([]model.Tx, 0)
+	// start listening for any results over the resultsChan
+	// once we get a result append it to the result slice
+	if len(block.Txs) > 0 {
+		for {
+			result := <-resultsChan
+			txs = append(txs, result.tx)
+			if result.err != nil {
+				return nil, fmt.Errorf("error requesting chain txs (%s) at height %d: %v", result.txHex, blockHeight, result.err)
+			}
+			// if we've reached the expected amount of urls then stop
+			if len(txs) == len(block.Txs) {
+				break
+			}
 		}
-		txs = append(txs, *tx)
+		seconds := time.Since(startTime).Seconds()
+
+		logger.Infof("total time process txs {}, time {}", len(block.Txs), seconds)
 	}
 
 	parseBlockToCommandsLogger := manager.logger.WithFields(applogger.LogFields{

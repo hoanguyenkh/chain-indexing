@@ -53,6 +53,7 @@ func (window *Window) Sync(
 
 	for currentHeight := beginHeight; currentHeight <= endHeight; currentHeight += 1 {
 		height := currentHeight
+		logger.Infof("sync block {}", height)
 		workersErrGroup.Go(func() error {
 			commands, err := worker(height)
 			if err != nil {

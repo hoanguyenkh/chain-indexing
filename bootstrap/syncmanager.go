@@ -76,9 +76,8 @@ type SyncManagerConfig struct {
 }
 
 type TxResult struct {
-	txHex string
-	tx    model.Tx
-	err   error
+	tx  model.Tx
+	err error
 }
 
 // NewSyncManager creates a new feed with polling for latest block starts at a specific height
@@ -260,7 +259,6 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 		close(semaphoreChan)
 		close(resultsChan)
 	}()
-	startTime := time.Now()
 	for _, txHex := range block.Txs {
 		// start a go routine with the index and url in a closure
 		go func(txHex string) {
@@ -274,13 +272,13 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 			// any error that might have occoured
 			var tx *model.Tx
 			tx, err = manager.cosmosClient.Tx(parser.TxHash(txHex))
-			txResult := &TxResult{txHex, model.Tx{
+			txResult := &TxResult{model.Tx{
 				Tx:         model.CosmosTx{},
 				TxResponse: model.TxResponse{},
 			}, err}
 
 			if tx != nil {
-				txResult = &TxResult{txHex, *tx, err}
+				txResult = &TxResult{*tx, err}
 			}
 			// now we can send the result struct through the resultsChan
 			resultsChan <- txResult
@@ -304,14 +302,12 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 				break
 			}
 		}
-		seconds := time.Since(startTime).Seconds()
-		logger.Infof("total time process txs {}, time {}", len(block.Txs), seconds)
 	}
 	txs := make([]model.Tx, 0)
 
 	for i := range txResults {
 		if txResults[i].err != nil {
-			return nil, fmt.Errorf("error requesting chain txs (%s) at height %d: %v", txResults[i].txHex, blockHeight, txResults[i].err)
+			return nil, fmt.Errorf("error requesting chain txs at height %d: %v", blockHeight, txResults[i].err)
 		}
 		txs = append(txs, txResults[i].tx)
 	}
@@ -335,7 +331,6 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 	if err != nil {
 		return nil, fmt.Errorf("error parsing block data to commands %v", err)
 	}
-
 	return commands, nil
 }
 

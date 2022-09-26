@@ -71,7 +71,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 		}
 
 		logger.Infof("error getting last handled event height from projection")
-		<-waitFor(5 * time.Second)
+		<-waitFor(3 * time.Second)
 	}
 
 	var nextEventHeight int64
@@ -85,7 +85,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 		latestEventHeight, _ := manager.eventStore.GetLatestHeight()
 		if latestEventHeight == nil {
 			logger.Debugf("no event in in the system yet")
-			<-waitFor(5 * time.Second)
+			<-waitFor(3 * time.Second)
 			continue
 		}
 		for nextEventHeight <= *latestEventHeight {
@@ -121,7 +121,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 				eventLogger.WithFields(applogger.LogFields{
 					"events": events,
 				}).Errorf("error handling events: %v", err)
-				<-waitFor(5 * time.Second)
+				<-waitFor(3 * time.Second)
 				continue
 			}
 
@@ -130,7 +130,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 			nextEventHeight += 1
 		}
 		prometheus.RecordProjectionLatestHeight(projection.Id(), nextEventHeight)
-		<-waitFor(5 * time.Second)
+		<-waitFor(3 * time.Second)
 	}
 }
 

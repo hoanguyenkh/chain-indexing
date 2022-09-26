@@ -100,15 +100,10 @@ func NewSyncManager(
 	}
 
 	var cosmosClient cosmosapp_interface.Client
-	if params.Config.InsecureCosmosAppClient {
-		cosmosClient = cosmosapp_infrastructure.NewInsecureHTTPClient(
-			params.Config.CosmosAppHTTPRPCURL, params.Config.StakingDenom,
-		)
-	} else {
-		cosmosClient = cosmosapp_infrastructure.NewHTTPClient(
-			params.Config.CosmosAppHTTPRPCURL, params.Config.StakingDenom,
-		)
-	}
+
+	cosmosClient = cosmosapp_infrastructure.NewHTTPClient(
+		params.Config.CosmosAppHTTPRPCURL, params.Config.StakingDenom,
+	)
 
 	return &SyncManager{
 		rdbConn:          params.RDbConn,

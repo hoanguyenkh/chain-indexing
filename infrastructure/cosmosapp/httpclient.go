@@ -2,19 +2,18 @@ package cosmosapp
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"github.com/crypto-com/chain-indexing/infrastructure/metric/prometheus"
+	"github.com/crypto-com/chain-indexing/usecase/coin"
+	"github.com/crypto-com/chain-indexing/usecase/model"
+	"github.com/hashicorp/go-retryablehttp"
+	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/crypto-com/chain-indexing/usecase/coin"
-	"github.com/crypto-com/chain-indexing/usecase/model"
-	jsoniter "github.com/json-iterator/go"
 
 	cosmosapp_interface "github.com/crypto-com/chain-indexing/appinterface/cosmosapp"
 )
@@ -25,7 +24,7 @@ const ERR_CODE_ACCOUNT_NOT_FOUND = 2
 const ERR_CODE_ACCOUNT_NO_DELEGATION = 5
 
 type HTTPClient struct {
-	httpClient *http.Client
+	httpClient *retryablehttp.Client
 	rpcUrl     string
 
 	bondingDenom string
@@ -33,27 +32,9 @@ type HTTPClient struct {
 
 // NewHTTPClient returns a new HTTPClient for tendermint request
 func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
-	httpClient := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	return &HTTPClient{
-		httpClient,
-		strings.TrimSuffix(rpcUrl, "/"),
-
-		bondingDenom,
-	}
-}
-
-func NewInsecureHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
-	// nolint:gosec
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	httpClient := &http.Client{
-		Timeout:   30 * time.Second,
-		Transport: transport,
-	}
+	httpClient := retryablehttp.NewClient()
+	httpClient.RetryMax = 3
+	httpClient.Logger = nil
 
 	return &HTTPClient{
 		httpClient,
@@ -756,7 +737,7 @@ func (client *HTTPClient) request(method string, queryString ...string) (io.Read
 		queryUrl += "?" + queryString[0]
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
+	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
@@ -787,7 +768,7 @@ func (client *HTTPClient) rawRequest(method string, queryString ...string) (io.R
 		queryUrl += "?" + queryString[0]
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
+	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
 		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
 		return nil, 0, fmt.Errorf("error creating HTTP request with context: %v", err)

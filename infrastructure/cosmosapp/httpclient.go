@@ -730,7 +730,6 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	txResult, ok := mapTx.Get(hash)
 	if ok {
-		fmt.Println("cache hit ", hash)
 		return txResult, nil
 	}
 	rawRespBody, err := client.request(

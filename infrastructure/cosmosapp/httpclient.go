@@ -8,8 +8,8 @@ import (
 	"github.com/crypto-com/chain-indexing/usecase/coin"
 	"github.com/crypto-com/chain-indexing/usecase/model"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/jellydator/ttlcache/v3"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/orcaman/concurrent-map/v2"
 	"io"
 	"net/http"
 	"net/url"
@@ -32,7 +32,9 @@ var (
 	// TLS certificate is not trusted. This error isn't typed
 	// specifically so we resort to matching on the error string.
 	notTrustedErrorRe = regexp.MustCompile(`certificate is not trusted`)
-	mapTx             = cmap.New[*model.Tx]()
+	cache             = ttlcache.New[string, *model.Tx](
+		ttlcache.WithTTL[string, *model.Tx](1 * time.Minute),
+	)
 )
 
 const ERR_CODE_ACCOUNT_NOT_FOUND = 2
@@ -111,6 +113,7 @@ func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
 	httpClient.RetryMax = 3
 	httpClient.Logger = nil
 	httpClient.CheckRetry = defaultRetryPolicy
+	go cache.Start()
 
 	return &HTTPClient{
 		httpClient,
@@ -728,9 +731,9 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 }
 
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
-	txResult, ok := mapTx.Get(hash)
-	if ok {
-		return txResult, nil
+	txResult := cache.Get(hash)
+	if txResult != nil {
+		return txResult.Value(), nil
 	}
 	rawRespBody, err := client.request(
 		fmt.Sprintf(
@@ -748,7 +751,7 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Tx(%s): %v", hash, err)
 	}
-	mapTx.Set(hash, tx)
+	cache.Set(hash, tx, time.Minute)
 	return tx, nil
 }
 

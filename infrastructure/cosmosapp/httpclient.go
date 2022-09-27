@@ -9,6 +9,7 @@ import (
 	"github.com/crypto-com/chain-indexing/usecase/model"
 	"github.com/hashicorp/go-retryablehttp"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/orcaman/concurrent-map/v2"
 	"io"
 	"net/http"
 	"net/url"
@@ -31,6 +32,7 @@ var (
 	// TLS certificate is not trusted. This error isn't typed
 	// specifically so we resort to matching on the error string.
 	notTrustedErrorRe = regexp.MustCompile(`certificate is not trusted`)
+	mapTx             = cmap.New[*model.Tx]()
 )
 
 const ERR_CODE_ACCOUNT_NOT_FOUND = 2
@@ -726,6 +728,11 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 }
 
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
+	txResult, ok := mapTx.Get(hash)
+	if ok {
+		fmt.Println("cache hit ", hash)
+		return txResult, nil
+	}
 	rawRespBody, err := client.request(
 		fmt.Sprintf(
 			"%s/%s",
@@ -742,7 +749,7 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Tx(%s): %v", hash, err)
 	}
-
+	mapTx.Set(hash, tx)
 	return tx, nil
 }
 

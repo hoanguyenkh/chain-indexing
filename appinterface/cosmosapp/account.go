@@ -5,6 +5,7 @@ const ACCOUNT_BASE = "/cosmos.auth.v1beta1.BaseAccount"
 const ACCOUNT_VESTING_DELAYED = "/cosmos.vesting.v1beta1.DelayedVestingAccount"
 const ACCOUNT_VESTING_CONTINUOUS = "/cosmos.vesting.v1beta1.ContinuousVestingAccount"
 const ACCOUNT_VESTING_PERIODIC = "/cosmos.vesting.v1beta1.PeriodicVestingAccount"
+const ACCOUNT_ETHERMINT = "/ethermint.types.v1.EthAccount"
 
 type Account struct {
 	Type          string  `json:"type"`

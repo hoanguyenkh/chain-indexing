@@ -74,6 +74,18 @@ func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.A
 			MaybeContinuousVestingAccount: nil,
 			MaybePeriodicVestingAccount:   nil,
 		}
+	case cosmosapp_interface.ACCOUNT_ETHERMINT:
+		account = cosmosapp_interface.Account{
+			Type:          rawAccount.Type,
+			Address:       rawAccount.MaybeBaseAccount.Address,
+			MaybePubkey:   rawAccount.MaybeBaseAccount.MaybePubKey,
+			AccountNumber: rawAccount.MaybeBaseAccount.AccountNumber,
+			Sequence:      rawAccount.MaybeBaseAccount.Sequence,
+
+			MaybeDelayedVestingAccount:    nil,
+			MaybeContinuousVestingAccount: nil,
+			MaybePeriodicVestingAccount:   nil,
+		}
 	case cosmosapp_interface.ACCOUNT_MODULE:
 		account = cosmosapp_interface.Account{
 			Type:          rawAccount.Type,

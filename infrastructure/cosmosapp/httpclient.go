@@ -2,6 +2,7 @@ package cosmosapp
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"github.com/crypto-com/chain-indexing/infrastructure/metric/prometheus"
 	"github.com/crypto-com/chain-indexing/usecase/coin"
@@ -11,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +21,17 @@ import (
 )
 
 var _ cosmosapp_interface.Client = &HTTPClient{}
+
+var (
+	redirectsErrorRe = regexp.MustCompile(`stopped after \d+ redirects\z`)
+	// specifically so we resort to matching on the error string.
+	schemeErrorRe = regexp.MustCompile(`unsupported protocol scheme`)
+
+	// A regular expression to match the error returned by net/http when the
+	// TLS certificate is not trusted. This error isn't typed
+	// specifically so we resort to matching on the error string.
+	notTrustedErrorRe = regexp.MustCompile(`certificate is not trusted`)
+)
 
 const ERR_CODE_ACCOUNT_NOT_FOUND = 2
 const ERR_CODE_ACCOUNT_NO_DELEGATION = 5
@@ -30,11 +43,72 @@ type HTTPClient struct {
 	bondingDenom string
 }
 
+// DefaultRetryPolicy provides a default callback for Client.CheckRetry, which
+// will retry on connection errors and server errors.
+func defaultRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	// do not retry on context.Canceled or context.DeadlineExceeded
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+
+	// don't propagate other errors
+	shouldRetry, _ := baseRetryPolicy(resp, err)
+	return shouldRetry, nil
+}
+
+func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
+	if err != nil {
+		if v, ok := err.(*url.Error); ok {
+			// Don't retry if the error was due to too many redirects.
+			if redirectsErrorRe.MatchString(v.Error()) {
+				return false, v
+			}
+
+			// Don't retry if the error was due to an invalid protocol scheme.
+			if schemeErrorRe.MatchString(v.Error()) {
+				return false, v
+			}
+
+			// Don't retry if the error was due to TLS cert verification failure.
+			if notTrustedErrorRe.MatchString(v.Error()) {
+				return false, v
+			}
+			if _, ok := v.Err.(x509.UnknownAuthorityError); ok {
+				return false, v
+			}
+		}
+
+		// The error is likely recoverable so retry.
+		return true, nil
+	}
+
+	// 429 Too Many Requests is recoverable. Sometimes the server puts
+	// a Retry-After response header to indicate when the server is
+	// available to start processing request from client.
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return true, nil
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return true, nil
+	}
+
+	// Check the response code. We retry on 500-range responses to allow
+	// the server time to recover, as 500's are typically not permanent
+	// errors and may relate to outages on the server side. This will catch
+	// invalid response codes as well, like 0 and 999.
+	if resp.StatusCode == 0 || (resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented) {
+		return true, fmt.Errorf("unexpected HTTP status %s", resp.Status)
+	}
+
+	return false, nil
+}
+
 // NewHTTPClient returns a new HTTPClient for tendermint request
 func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
 	httpClient.RetryMax = 3
 	httpClient.Logger = nil
+	httpClient.CheckRetry = defaultRetryPolicy
 
 	return &HTTPClient{
 		httpClient,

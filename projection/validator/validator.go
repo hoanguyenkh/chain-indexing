@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
 	"time"
 
 	"github.com/crypto-com/chain-indexing/appinterface/projection/rdbprojectionbase"
@@ -111,7 +110,6 @@ func (projection *Validator) HandleEvents(height int64, events []event_entity.Ev
 
 	var blockTime utctime.UTCTime
 	var blockHash string
-	var blockProposer string
 	for _, event := range events {
 		if genesisEvent, ok := event.(*event_usecase.GenesisCreated); ok {
 			blockTime = utctime.MustParse(time.RFC3339, genesisEvent.Genesis.GenesisTime)
@@ -119,7 +117,6 @@ func (projection *Validator) HandleEvents(height int64, events []event_entity.Ev
 		} else if blockCreatedEvent, ok := event.(*event_usecase.BlockCreated); ok {
 			blockTime = blockCreatedEvent.Block.Time
 			blockHash = blockCreatedEvent.Block.Hash
-			blockProposer = blockCreatedEvent.Block.ProposerAddress
 		}
 	}
 
@@ -148,35 +145,14 @@ func (projection *Validator) HandleEvents(height int64, events []event_entity.Ev
 	for i, validator := range validatorList {
 		validatorMap[validator.TendermintAddress] = &validatorList[i]
 	}
-
 	for _, event := range events {
 		if blockCreatedEvent, ok := event.(*event_usecase.BlockCreated); ok {
-			signatureCount := len(blockCreatedEvent.Block.Signatures)
-			commitmentRows := make([]view.ValidatorBlockCommitmentRow, 0, signatureCount)
-
-			identities := make([]string, 0, len(blockCreatedEvent.Block.Signatures))
-			heightValidatorIdentities := make([]string, 0, len(blockCreatedEvent.Block.Signatures))
-
 			commitmentMap := make(map[string]bool)
 			for _, signature := range blockCreatedEvent.Block.Signatures {
 				signedValidator, exist := validatorMap[signature.ValidatorAddress]
 				if !exist {
 					return errors.New("error looking for signing validator details: not found")
 				}
-				commitmentRows = append(commitmentRows, view.ValidatorBlockCommitmentRow{
-					ConsensusNodeAddress: signedValidator.ConsensusNodeAddress,
-					BlockHeight:          height,
-					IsProposer:           blockProposer == signature.ValidatorAddress,
-					Signature:            signature.Signature,
-					Timestamp:            signature.Timestamp,
-				})
-
-				identities = append(identities, fmt.Sprintf("-:%s", signedValidator.ConsensusNodeAddress))
-				heightValidatorIdentities = append(
-					heightValidatorIdentities,
-					fmt.Sprintf("%s:%s", strconv.FormatInt(height, 10), signedValidator.ConsensusNodeAddress),
-				)
-
 				commitmentMap[signedValidator.ConsensusNodeAddress] = true
 			}
 
@@ -234,11 +210,9 @@ func (projection *Validator) HandleEvents(height int64, events []event_entity.Ev
 			}
 		}
 	}
-
 	if err := projection.UpdateLastHandledEventHeight(rdbTxHandle, height); err != nil {
 		return fmt.Errorf("error updating last handled event height: %v", err)
 	}
-
 	if err := rdbTx.Commit(); err != nil {
 		return fmt.Errorf("error committing changes: %v", err)
 	}

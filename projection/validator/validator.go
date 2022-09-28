@@ -106,7 +106,6 @@ func (projection *Validator) HandleEvents(height int64, events []event_entity.Ev
 
 	rdbTxHandle := rdbTx.ToHandle()
 	validatorsView := view.NewValidators(rdbTxHandle)
-	validatorBlockCommitmentsView := view.NewValidatorBlockCommitments(rdbTxHandle)
 	validatorBlockCommitmentsTotalView := view.NewValidatorBlockCommitmentsTotal(rdbTxHandle)
 	validatorActivitiesView := view.NewValidatorActivities(rdbTxHandle)
 	validatorActivitiesTotalView := view.NewValidatorActivitiesTotal(rdbTxHandle)
@@ -182,9 +181,6 @@ func (projection *Validator) HandleEvents(height int64, events []event_entity.Ev
 				commitmentMap[signedValidator.ConsensusNodeAddress] = true
 			}
 
-			if err := validatorBlockCommitmentsView.InsertAll(commitmentRows); err != nil {
-				return fmt.Errorf("error incrementing validator block commitment rows: %v", err)
-			}
 			if err := validatorBlockCommitmentsTotalView.Set(
 				fmt.Sprintf("%s:-", strconv.FormatInt(height, 10)), int64(signatureCount),
 			); err != nil {

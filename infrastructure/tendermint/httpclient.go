@@ -2,13 +2,16 @@ package tendermint
 
 import (
 	"context"
-	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"github.com/crypto-com/chain-indexing/infrastructure/metric/prometheus"
+	"github.com/jellydator/ttlcache/v3"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,21 +21,39 @@ import (
 	"github.com/crypto-com/chain-indexing/usecase/model/genesis"
 
 	usecase_model "github.com/crypto-com/chain-indexing/usecase/model"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 var _ tendermint.Client = &HTTPClient{}
 
+var (
+	redirectsErrorRe = regexp.MustCompile(`stopped after \d+ redirects\z`)
+	// specifically so we resort to matching on the error string.
+	schemeErrorRe = regexp.MustCompile(`unsupported protocol scheme`)
+
+	// A regular expression to match the error returned by net/http when the
+	// TLS certificate is not trusted. This error isn't typed
+	// specifically so we resort to matching on the error string.
+	notTrustedErrorRe = regexp.MustCompile(`certificate is not trusted`)
+
+	cacheBlockResult = ttlcache.New[int64, *usecase_model.BlockResults](
+		ttlcache.WithTTL[int64, *usecase_model.BlockResults](1 * time.Minute),
+	)
+)
+
 type HTTPClient struct {
-	httpClient           *http.Client
+	httpClient           *retryablehttp.Client
 	tendermintRPCUrl     string
 	strictGenesisParsing bool
 }
 
 // NewHTTPClient returns a new HTTPClient for tendermint request
 func NewHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClient {
-	httpClient := &http.Client{
-		Timeout: 30 * time.Second,
-	}
+	httpClient := retryablehttp.NewClient()
+	httpClient.Logger = nil
+	httpClient.CheckRetry = defaultRetryPolicy
+
+	go cacheBlockResult.Start()
 
 	return &HTTPClient{
 		httpClient,
@@ -41,22 +62,63 @@ func NewHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClie
 	}
 }
 
-// NewInsecureHTTPClient returns a new HTTPClient for tendermint request
-func NewInsecureHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClient {
-	// nolint:gosec
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	httpClient := &http.Client{
-		Timeout:   30 * time.Second,
-		Transport: transport,
+// defaultRetryPolicy provides a default callback for Client.CheckRetry, which
+// will retry on connection errors and server errors.
+func defaultRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	// do not retry on context.Canceled or context.DeadlineExceeded
+	if ctx.Err() != nil {
+		return false, ctx.Err()
 	}
 
-	return &HTTPClient{
-		httpClient,
-		strings.TrimSuffix(tendermintRPCUrl, "/"),
-		strictGenesisParsing,
+	// don't propagate other errors
+	shouldRetry, _ := baseRetryPolicy(resp, err)
+	return shouldRetry, nil
+}
+
+func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
+	if err != nil {
+		if v, ok := err.(*url.Error); ok {
+			// Don't retry if the error was due to too many redirects.
+			if redirectsErrorRe.MatchString(v.Error()) {
+				return false, v
+			}
+
+			// Don't retry if the error was due to an invalid protocol scheme.
+			if schemeErrorRe.MatchString(v.Error()) {
+				return false, v
+			}
+
+			// Don't retry if the error was due to TLS cert verification failure.
+			if notTrustedErrorRe.MatchString(v.Error()) {
+				return false, v
+			}
+			if _, ok := v.Err.(x509.UnknownAuthorityError); ok {
+				return false, v
+			}
+		}
+
+		// The error is likely recoverable so retry.
+		return true, nil
 	}
+
+	// 429 Too Many Requests is recoverable. Sometimes the server puts
+	// a Retry-After response header to indicate when the server is
+	// available to start processing request from client.
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return true, nil
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return true, nil
+	}
+	// Check the response code. We retry on 500-range responses to allow
+	// the server time to recover, as 500's are typically not permanent
+	// errors and may relate to outages on the server side. This will catch
+	// invalid response codes as well, like 0 and 999.
+	if resp.StatusCode == 0 || (resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented) {
+		return true, fmt.Errorf("unexpected HTTP status %s", resp.Status)
+	}
+
+	return false, nil
 }
 
 func (client *HTTPClient) Genesis() (*genesis.Genesis, error) {
@@ -96,8 +158,11 @@ func (client *HTTPClient) Block(height int64) (*usecase_model.Block, *usecase_mo
 }
 
 func (client *HTTPClient) BlockResults(height int64) (*usecase_model.BlockResults, error) {
+	cacheBlockResults := cacheBlockResult.Get(height)
+	if cacheBlockResults != nil {
+		return cacheBlockResults.Value(), nil
+	}
 	var err error
-
 	rawRespBody, err := client.request("block_results", "height="+strconv.FormatInt(height, 10))
 	if err != nil {
 		return nil, err
@@ -108,7 +173,7 @@ func (client *HTTPClient) BlockResults(height int64) (*usecase_model.BlockResult
 	if err != nil {
 		return nil, err
 	}
-
+	cacheBlockResult.Set(height, blockResults, time.Minute)
 	return blockResults, nil
 }
 
@@ -134,12 +199,12 @@ func (client *HTTPClient) LatestBlockHeight() (int64, error) {
 func (client *HTTPClient) request(method string, queryString ...string) (io.ReadCloser, error) {
 	var err error
 	startTime := time.Now()
-	url := client.tendermintRPCUrl + "/" + method
+	queryUrl := client.tendermintRPCUrl + "/" + method
 	if len(queryString) > 0 {
-		url += "?" + queryString[0]
+		queryUrl += "?" + queryString[0]
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
 		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "rpc", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
@@ -147,7 +212,7 @@ func (client *HTTPClient) request(method string, queryString ...string) (io.Read
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
 		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "rpc", time.Since(startTime).Milliseconds())
-		return nil, fmt.Errorf("error requesting Tendermint %s endpoint: %v", url, err)
+		return nil, fmt.Errorf("error requesting Tendermint %s endpoint: %v", queryUrl, err)
 	}
 	prometheus.RecordApiExecTime(method, strconv.Itoa(rawResp.StatusCode), "rpc", time.Since(startTime).Milliseconds())
 	if rawResp.StatusCode != 200 {

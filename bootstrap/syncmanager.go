@@ -89,17 +89,10 @@ func NewSyncManager(
 	eventHandler eventhandler_interface.Handler,
 ) *SyncManager {
 	var tendermintClient *tendermint.HTTPClient
-	if params.Config.InsecureTendermintClient {
-		tendermintClient = tendermint.NewInsecureHTTPClient(
-			params.Config.TendermintRPCUrl,
-			params.Config.StrictGenesisParsing,
-		)
-	} else {
-		tendermintClient = tendermint.NewHTTPClient(
-			params.Config.TendermintRPCUrl,
-			params.Config.StrictGenesisParsing,
-		)
-	}
+	tendermintClient = tendermint.NewHTTPClient(
+		params.Config.TendermintRPCUrl,
+		params.Config.StrictGenesisParsing,
+	)
 
 	var cosmosClient cosmosapp_interface.Client
 

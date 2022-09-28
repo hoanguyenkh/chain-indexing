@@ -110,7 +110,6 @@ func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
 // NewHTTPClient returns a new HTTPClient for tendermint request
 func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
-	httpClient.RetryMax = 3
 	httpClient.Logger = nil
 	httpClient.CheckRetry = defaultRetryPolicy
 	go cache.Start()

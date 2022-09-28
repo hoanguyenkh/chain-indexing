@@ -118,12 +118,10 @@ func ParseBlockTxsMsgToCommands(
 
 				// cosmos vesting
 				"/cosmos.vesting.v1beta1.MsgCreateVestingAccount",
-
 				// ethermint evm
 				"/ethermint.evm.v1.MsgEthereumTx",
 				"/evmos.vesting.v1.MsgCreateClawbackVestingAccount":
 				parser := parserManager.GetParser(utils.CosmosParserKey(msgType.(string)), utils.ParserBlockHeight(blockHeight))
-
 				msgCommands, possibleSignerAddresses = parser(utils.CosmosParserParams{
 					AddressPrefix:   accountAddressPrefix,
 					StakingDenom:    stakingDenom,
@@ -466,6 +464,9 @@ func parseMsgSubmitParamChangeProposal(
 				InitialDeposit:  initialDepositAmount,
 			},
 		)}, possibleSignerAddresses
+	}
+	for i := range txsResult.Log {
+		fmt.Println(txsResult.Log[i])
 	}
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
 	event := log.GetEventByType("submit_proposal")

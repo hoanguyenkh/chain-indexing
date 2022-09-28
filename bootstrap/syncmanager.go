@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -76,8 +77,9 @@ type SyncManagerConfig struct {
 }
 
 type TxResult struct {
-	tx  model.Tx
-	err error
+	index int
+	tx    model.Tx
+	err   error
 }
 
 // NewSyncManager creates a new feed with polling for latest block starts at a specific height
@@ -254,26 +256,22 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 		close(semaphoreChan)
 		close(resultsChan)
 	}()
-	for _, txHex := range block.Txs {
+	for i, txHex := range block.Txs {
 		// start a go routine with the index and url in a closure
-		go func(txHex string) {
-			// this sends an empty struct into the semaphoreChan which
-			// is basically saying add one to the limit, but when the
-			// limit has been reached block until there is room
+		go func(index int, txHex string) {
 			semaphoreChan <- struct{}{}
 
-			// send the request and put the response in a result struct
-			// along with the index so we can sort them later along with
-			// any error that might have occoured
 			var tx *model.Tx
 			tx, err = manager.cosmosClient.Tx(parser.TxHash(txHex))
-			txResult := &TxResult{model.Tx{
-				Tx:         model.CosmosTx{},
-				TxResponse: model.TxResponse{},
-			}, err}
+			txResult := &TxResult{
+				index,
+				model.Tx{
+					Tx:         model.CosmosTx{},
+					TxResponse: model.TxResponse{},
+				}, err}
 
 			if tx != nil {
-				txResult = &TxResult{*tx, err}
+				txResult = &TxResult{index, *tx, err}
 			}
 			// now we can send the result struct through the resultsChan
 			resultsChan <- txResult
@@ -283,12 +281,12 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 			// another goroutine to start
 			<-semaphoreChan
 
-		}(txHex)
+		}(i, txHex)
 	}
 	txResults := make([]TxResult, 0)
-	// start listening for any results over the resultsChan
-	// once we get a result append it to the result slice
 	if len(block.Txs) > 0 {
+		// start listening for any results over the resultsChan
+		// once we get a result append it to the result slice
 		for {
 			result := <-resultsChan
 			txResults = append(txResults, *result)
@@ -297,6 +295,9 @@ func (manager *SyncManager) syncBlockWorker(blockHeight int64) ([]command_entity
 				break
 			}
 		}
+		sort.Slice(txResults, func(i, j int) bool {
+			return txResults[i].index < txResults[j].index
+		})
 	}
 	txs := make([]model.Tx, 0)
 

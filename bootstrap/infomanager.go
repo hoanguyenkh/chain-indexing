@@ -10,7 +10,7 @@ import (
 )
 
 // TODO: Move InfoManager to CronJob
-const INFO_DEFAULT_POLLING_INTERVAL = 5 * time.Second
+const INFO_DEFAULT_POLLING_INTERVAL = 2500 * time.Millisecond
 
 type InfoManager struct {
 	rdbConn         rdb.Conn

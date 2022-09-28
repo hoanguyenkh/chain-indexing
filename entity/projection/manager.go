@@ -9,6 +9,8 @@ import (
 	"github.com/crypto-com/chain-indexing/infrastructure/metric/prometheus"
 )
 
+const DEFAULT_BLOCK_TIME = 2500 * time.Millisecond
+
 // StoreBasedManager is a projection manager relies on replaying events from EventStore
 type StoreBasedManager struct {
 	logger     applogger.Logger
@@ -71,7 +73,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 		}
 
 		logger.Infof("error getting last handled event height from projection")
-		<-waitFor(3 * time.Second)
+		<-waitFor(DEFAULT_BLOCK_TIME)
 	}
 
 	var nextEventHeight int64
@@ -85,7 +87,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 		latestEventHeight, _ := manager.eventStore.GetLatestHeight()
 		if latestEventHeight == nil {
 			logger.Debugf("no event in in the system yet")
-			<-waitFor(3 * time.Second)
+			<-waitFor(DEFAULT_BLOCK_TIME)
 			continue
 		}
 		for nextEventHeight <= *latestEventHeight {
@@ -121,7 +123,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 				eventLogger.WithFields(applogger.LogFields{
 					"events": events,
 				}).Errorf("error handling events: %v", err)
-				<-waitFor(3 * time.Second)
+				<-waitFor(DEFAULT_BLOCK_TIME)
 				continue
 			}
 
@@ -130,7 +132,7 @@ func (manager *StoreBasedManager) projectionRunner(projection Projection) {
 			nextEventHeight += 1
 		}
 		prometheus.RecordProjectionLatestHeight(projection.Id(), nextEventHeight)
-		<-waitFor(3 * time.Second)
+		<-waitFor(DEFAULT_BLOCK_TIME)
 	}
 }
 
